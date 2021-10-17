@@ -69,19 +69,29 @@ class Board:
 import json, copy, os
 from time import time
 class Minimax:
-    def __init__(self):
+    def __init__(self, isLearning):
         # Need information of what the current player SHAPE is 
-        self.isLearning = True # Used to train the bot and populate the Database JSON. Set to False if the bot is currently playing. 
+        self.isLearning = isLearning # Used to train the bot and populate the Database JSON. Set to False if the bot is currently playing. 
         self.database = {} # The current database object to lookup positions 
-        self.bestMove = (1, 2) # Just a placeholder value ( Column, Shape and Color )
-        self.bestMoveScore = float("-inf")
-        
+        # if( not os.path.exists('./database.json')) : 
+        #     self.saveToDatabase()
+        # else :
+        #     self.loadDatabase()
+
+        # Load Reference Table
+        if( not os.path.exists('./reference_map.json')) : 
+            self.getReferenceMap(row, col, 4)
+        self.loadReferenceMap()
         self.totalPositions = 0
+
+        # For Debugging
+        self.checkVariations = 0
+
         pass
     
     def saveToDatabase(self) :
         with open("database.json", "w") as outfile:
-            json.dump(self.database, outfile)
+            json.dump(self.database, outfile, indent=1)
 
     def loadDatabase(self) :  
         with open("database.json", "r") as json_file:
@@ -91,9 +101,9 @@ class Minimax:
         with open("reference_map.json", "r") as json_file:
             self.referenceMap = json.load(json_file)
 
-    def getReferenceMap(self, row, column, piecesVariation) :
-        referenceMap = [[[] for j in range(row)] for i in range(column)]
-        for i in range (column) : 
+    def getReferenceMap(self, row, col, piecesVariation) :
+        referenceMap = [[[] for j in range(row)] for i in range(col)]
+        for i in range (col) : 
             for j in range(row) :
                 for k in range (piecesVariation) : 
                     referenceMap[i][j].append(random.randint(2**36,2**64))
@@ -104,13 +114,16 @@ class Minimax:
     def hashPositionMap(self, positionArray) :
         # Definitely needs some check later on real implementation
         
-        column = len(positionArray) 
+        col = len(positionArray) 
         finalValue = 2**64 # Basically a 36 bit long integer will all 1s
-        for i in range(column) :
+        for i in range(col) :
             row = len(positionArray[i])
             for j in range(row): 
                 pieceValue = positionArray[i][j]
-                value = self.referenceMap[i][j][pieceValue-1]
+                try : 
+                    value = self.referenceMap[i][j][pieceValue-1]
+                except IndexError : 
+                    print(positionArray)
                 finalValue = finalValue ^ value
         return finalValue
 
@@ -141,12 +154,18 @@ class Minimax:
     def getScore(self, positionArray) : 
         return random.randint(-200,200)
     
-    def learn(self) : 
-        minimax.find(board, ColorConstant.RED, 3)
-        minimax.find(board, ColorConstant.RED, 4)
+    def learn(self, board, depth) : 
+        # Problem : Because the transition table already have the value for position x, the learn function doesn't go deep enough. 
+        self.find(board, ColorConstant.RED, depth)
+        # self.find(board, ColorConstant.RED, 3)
+        # self.find(board, ColorConstant.RED, 4)
+        # minimax.find(board, ColorConstant.RED, 4)
         # minimax.find(board, ColorConstant.RED, 5)
         # # minimax.find(board, ColorConstant.RED, 6)
-        self.saveToDatabase()
+        # 
+        if(depth == 2) : 
+            print(self.database)
+            self.saveToDatabase()
         return 0
 
     def find(self, board, color, depth = 4):
@@ -164,13 +183,16 @@ class Minimax:
         row = board.row
         positionArray = self.getPositionArrayFromBoard(board)
 
-        # Load Reference Table
-        if( not os.path.exists('./reference_map.json')) : 
-            self.getReferenceMap(row, col, 4)
-        self.loadReferenceMap()
+        # Initiates the reuslts 
+        self.totalPositions = 0
+        self.bestMove = (1, 2) # Just a placeholder value ( Column, Shape and Color )
+        self.bestMoveScore = float("-inf")
 
         # Calculation
-        self.findAllPossiblePositions(positionArray, row, col, color, depth)
+        # self.findAllPossiblePositions(color, positionArray, row, col, depth)
+        # Minimax
+        self.Minimax(color, positionArray, row, col, depth = depth)
+        self.totalPositions = 14**depth # Basic math; What it should be. Already confirmed
 
         # Result
         print("Depth :", depth)
@@ -179,87 +201,119 @@ class Minimax:
         print("Score :",self.bestMoveScore)
         print("Time : ",time()- currentTime, "Seconds")
         print("Total positions in transition table :", len(self.database))
+        # print("Variations : ", self.checkVariations)
 
 
         return self.bestMove
 
+    # Uses Minimax  
+    def getPositionScore(self, piece, nextColor, index, positionArray, row, col, alpha, beta, isMaximizing, depth) : 
+        j = index
+        positionArray[j].append(piece)
+        hashValue = self.hashPositionMap(positionArray)
+        if( hashValue in self.database.keys()) :
+            score = self.database[hashValue]["score"]
+        else : 
+            score = self.Minimax(nextColor, positionArray, row, col, alpha, beta, not isMaximizing, depth-1)
+        positionArray[j].pop()
+        return score
 
-    def Minimax(self, positionArray,  alpha = float("-inf"), beta = float("inf"), isMaximizing = True, depth = 3):
+    def Minimax(self, color, positionArray, row = 6, col = 7, alpha = float("-inf"), beta = float("inf"), isMaximizing = True, depth = 3):
+        # Using Fail-Soft Alpha Beta
+        # print("Test")
         if(depth == 0) :
-            return self.getScore(positionArray)
-        elif (isMaximizing) :
-            for i in 10 : 
-                maxScore = float("-inf")
-                score = Minimax(positionArray, alpha, beta, not isMaximizing, depth-1)
-                maxScore = max(score, maxScore)
-                alpha = max(alpha, maxScore)
-                if(alpha >= beta) :
-                    break 
-                return maxScore
-        else :
-            for i in 10 : 
-                minScore = float("inf")
-                score = Minimax(positionArray, alpha, beta, not isMaximizing, depth-1)
-                minScore = min(score, minScore)
-                beta = min(beta, minScore)
-                if(alpha >= beta) :
-                    break 
-                return minScore
-
-    # Problem : Everytime there is a jump, 
-    def findAllPossiblePositions(self, positionArray, row, column, color, depth = 3 ) :
-        if depth == 0 : 
-            self.totalPositions +=1 
             score = self.getScore(positionArray)
             hashValue = self.hashPositionMap(positionArray)
 
             # Apparently the reference for the positions is linked with each other so i need to deep copy it 
+            # Putting the actual position into the database is only for human comprehension purposes
             newPositionArray = copy.deepcopy(positionArray) if self.isLearning else positionArray
 
             # Save the evaluated position into the database 
             self.database[hashValue] = {"score" : score, "positionArray" : newPositionArray, "totalPositions" : self.totalPositions}
 
             return score
-    
-        for j in range(col) : 
+        elif (isMaximizing) :
+            for j in range(col*2) : 
+                maxScore = float("-inf")
+                nextColor = ColorConstant.RED if color == ColorConstant.BLUE else ColorConstant.BLUE
+                piece = self.getPieceRepresentation(Piece(ShapeConstant.CROSS if j % 2 == 1 else ShapeConstant.CIRCLE , color))
+                print(piece) # The Piece Value 3 is never added to the database somehow
+                index = j/2 if j % 2 == 0 else (j-1)/2
+                if(index > row) :
+                    continue
+                score = self.getPositionScore(piece, nextColor, int(index), positionArray, row, col, alpha, beta, isMaximizing, depth)
+
+                # Compares the scores 
+                maxScore = max(score, maxScore)
+                alpha = max(alpha, maxScore)
+                if(maxScore >= beta) :
+                    break 
+            return maxScore
+        else :
+            for j in range(col*2) : 
+                minScore = float("inf")
+                nextColor = ColorConstant.RED if color == ColorConstant.BLUE else ColorConstant.BLUE
+                piece = self.getPieceRepresentation(Piece(ShapeConstant.CROSS if j % 2 == 1 else ShapeConstant.CIRCLE , color))
+                index = j/2 if j % 2 == 0 else (j-1)/2
+                if(index >= row) :
+                    continue
+                score = self.getPositionScore(piece, nextColor, int(index), positionArray, row, col, alpha, beta, isMaximizing, depth)
+
+                # Compares the scores 
+                minScore = min(score, minScore)
+                beta = min(beta, minScore)
+                if(minScore <= alpha) :
+                    break 
+            return minScore
+
+
+    # Used for the findAllPossiblePositions method
+    def getPieceScore(self, piece, nextColor, index, positionArray, row, col, depth) : 
+        j = index
+        positionArray[j].append(piece)
+        hashValue = self.hashPositionMap(positionArray)
+        if( hashValue in self.database.keys()) :
+            score = self.database[hashValue]["score"]
+        else : 
+            score = self.findAllPossiblePositions(nextColor, positionArray, row, col, depth-1)
+        positionArray[j].pop()
+        return score
+
+
+    def findAllPossiblePositions(self, color, positionArray, row, col,  depth = 3 ) :
+        # print(positionArray)
+        if depth == 0 : 
+            # self.totalPositions +=1 
+            score = self.getScore(positionArray)
+            hashValue = self.hashPositionMap(positionArray)
+            # if len(positionArray[0]) > 0 and positionArray[0][0] == 1 :
+            #     self.checkVariations += 1
+
+            # Apparently the reference for the positions is linked with each other so i need to deep copy it 
+            # Putting the actual position into the database is only for human comprehension purposes
+            newPositionArray = copy.deepcopy(positionArray) if self.isLearning else positionArray
+
+            # Save the evaluated position into the database 
+            self.database[hashValue] = {"score" : score, "positionArray" : newPositionArray, "totalPositions" : self.totalPositions}
+
+            return score
+        
+        bestScore = float('-inf')
+        for j in range(col*2) : 
             nextColor = ColorConstant.RED if color == ColorConstant.BLUE else ColorConstant.BLUE
+            piece = self.getPieceRepresentation(Piece(ShapeConstant.CROSS if j % 2 == 1 else ShapeConstant.CIRCLE , color))
+            index = j/2 if j % 2 == 0 else (j-1)/2
+            score = self.getPieceScore(piece, nextColor, int(index), positionArray, row, col, depth)
+            bestScore = bestScore if score < bestScore else score
 
-            # Get position with shape X
-            pieceX = self.getPieceRepresentation(Piece(ShapeConstant.CROSS, color))
-            positionArray[j].append(pieceX)
-            hashValue = self.hashPositionMap(positionArray)
-            if( hashValue in self.database.keys()) :
-                scoreX = self.database[hashValue]["score"]
-            else : 
-                scoreX = self.findAllPossiblePositions(positionArray, row, column, nextColor, depth-1)
-            positionArray[j].pop()
-            
-            if( self.bestMoveScore < scoreX ) : 
-                self.bestMoveScore = scoreX
-                self.bestMove = ( j, pieceX ) #Fix Best Move Logic
+        return bestScore
 
-            # Get position with shape Y 
-            pieceY = self.getPieceRepresentation(Piece(ShapeConstant.CIRCLE, color))
-            positionArray[j].append(pieceY)
-            hashValue = self.hashPositionMap(positionArray)
-            if( hashValue in self.database.keys()) :    
-                scoreY = self.database[hashValue]['score']
-            else : 
-                scoreY = self.findAllPossiblePositions(positionArray, row, column, nextColor, depth-1)
-            positionArray[j].pop()
-            if( self.bestMoveScore < scoreY ) : 
-                self.bestMoveScore = scoreY
-                self.bestMove = ( j, pieceY )
-        return self.bestMoveScore
-
-# bestMove = None
-# currentTurn = 0
-# totalPositions = 0
-# samples = []
 row = 6
 col = 7
-board = Board(row, col)
-minimax = Minimax()
-minimax.learn()
+for i in range(1, 3) : 
+    board = Board(row, col)
+    minimax = Minimax(True)
+    minimax.learn(board, i)
 
         
