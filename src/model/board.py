@@ -17,7 +17,7 @@ class Board:
         self.row = row
         self.col = col
         self.board = [
-            [Piece(ShapeConstant.BLANK, ColorConstant.BLACK) for i in range(self.col)]
+            [Piece(ShapeConstant.BLANK, ColorConstant.BLACK) for i  in range(self.col)]
             for j in range(self.row)
         ]
 
