@@ -93,123 +93,134 @@ class Minimax:
         return positionArray
     
     def find(self, state, player_turn, thinking_time):
-        if(state.round <= 2) :
+        if(state.round <= 4) :
             return (random.randint(0,state.board.col), random.choice([ShapeConstant.CIRCLE, ShapeConstant.CROSS]))
         # Preparation
-        currentTime = time()
+        self.start_time = time()
+        self.thinking_time = thinking_time
+
         # Player piece shape and color
         self.shape = state.players[player_turn].shape
-        self.color = state.players[player_turn].color  
-        # The col and row needs to be reversed. 
-        col = state.board.col
-        row = state.board.row
+        self.color = state.players[player_turn].color 
+        self.pieceQuota = state.players[player_turn].quota 
+
+        # Board
+        self.col = state.board.col
+        self.row = state.board.row
         positionArray = self.getPositionArrayFromBoard(state.board)
-        
         if( not os.path.exists('./reference_map.json')) : 
-            self.getReferenceMap(row, col, 4)
+            self.getReferenceMap(self.row, self.col, 4)
         self.loadReferenceMap()
 
         # Initiates the reuslts 
         self.totalPositions = 0
         self.bestMove = (0,0) # Just a placeholder value ( Column, Shape and Color )
         self.bestMoveScore = float("-inf")
-
         # Minimax
-        # print(positionArray)
-        self.Minimax(self.color, positionArray, row, col, depth = self.depth)
+        
         # self.totalPositions = 14**depth # Basic math; What it should be. Already confirmed
-        # print("Time : ",time() - currentTime, "Seconds")
+        for depth in range(1, self.depth+1):
+            self.database = {}
+            if time() - self.start_time > self.thinking_time: 
+                break
+            successors = self.generateSucessors(positionArray)
+            # print(successors, len(successors), depth)
+            for successor in successors:
+                score = self.Minimax(self.color, successor["position"], depth=depth)
+                print(successor, score, depth)
+                if score > self.bestMoveScore:
+                    
+                    column = successor["column"]
+                    piece = successor["piece"]
+                    self.bestMoveScore = score
+                    self.bestMove = (int(column), self.getPieceRepresentation(piece)[0])
+            print(self.bestMove, depth)
         return self.bestMove
 
     # Scoring System based on the number of streaks
     def getPositionScore(self, positionArray) : 
-        def checkStreak(currentNode, positionArray, visited = [], streak = 2 ) :  
-            streak_way = [(-1, 0), (0, -1), (0, 1), (1, 0), (-1, -1), (-1, 1), (1, -1), (1, 1)]
-            queue = {}
-            # Preparation
-            currentNodePiece = self.getPieceRepresentation(currentNode["value"])
-            pieceShape = 1 if currentNodePiece[0] == ShapeConstant.CIRCLE else 3
-            pieceColor = 1 if currentNodePiece[1] == ColorConstant.RED else 2 
-            shapeNumber = 1 if self.shape == ShapeConstant.CIRCLE else 3
-            colorNumber = 1 if self.color == ColorConstant.RED else 2 
-            
-            score = 0
-            visited.append(currentNode)
-            for move in streak_way :
-                scoreIncrement = streak
-                streakFlag = False
-                if scoreIncrement == 4 :
-                    scoreIncrement = float("inf")
-                (x, y) = (currentNode["position"][0] + move[0], currentNode["position"][1] + move[1])
-                if x < 0 or y < 0 :
-                    continue
-                found = False
-                for position in visited:
-                    if( x == position["position"][0] and y == position["position"][1]) :
-                        found = True 
-                        break 
-                if(found) :
-                    continue
-                try :
-                    value = positionArray[x][y]
+        score = 0
+        for i in range(len(positionArray)) : 
+            row = positionArray[i]
+            for j in range(len(row)) : 
+                currentValue = positionArray[i][j]
+                position = (i,j)
+                streak_way = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]
+               
+                # Preparation
+                currentNodePiece = self.getPieceRepresentation(currentValue)
+                pieceShape = 1 if currentNodePiece[0] == ShapeConstant.CIRCLE else 3
+                pieceColor = 1 if currentNodePiece[1] == ColorConstant.RED else 2 
+                playerShape = 1 if self.shape == ShapeConstant.CIRCLE else 3
+                playerColor = 1 if self.color == ColorConstant.RED else 2 
+                
+                for move in streak_way :
+                    (x, y) = (position[0] + move[0], position[1] + move[1])
+                    # Check if the moved position is available
+                    if x < 0 or y < 0 :
+                        continue
+                    try :
+                        value = positionArray[x][y]  
+                    except IndexError :
+                        continue
+
                     
-                except IndexError :
-                    continue
-                player_turn = self.depth % 2
-                if value == pieceShape or value == pieceShape + 1 : 
-                    streakFlag = True
-                    if( pieceShape == shapeNumber ) :
-                        score = score + 200 if scoreIncrement == float("inf") else score + scoreIncrement
-                    else :
-                        score = score - 200  if scoreIncrement == float("inf") else score - 10*scoreIncrement
-                    
+                    colorStreak = True
+                    shapeStreak = True
+                    for streak in range(5) : 
+                        scoreIncrement = streak
+                        
+                        player_turn = self.depth % 2
+                        if shapeStreak and ( value == pieceShape or value == pieceShape + 1 ):
+                            if( pieceShape == playerShape ) :
+                                score = score + 2000 if scoreIncrement == 4 else score + scoreIncrement
+                            else :
+                                score = score - 5000  if scoreIncrement == 4 else score - 10*scoreIncrement
+                        else :
+                            shapeStreak = False 
 
-                if value == colorNumber or value == colorNumber + 2 : 
-                    streakFlag = True
-                    if(pieceColor == colorNumber) :
-                        score = score + 200  if scoreIncrement == float("inf") else score + scoreIncrement
-                    else :
-                        score = score - 200  if scoreIncrement == float("inf") else score - scoreIncrement
-                
-                if(streakFlag) :
-                    key = str(x) + "," + str(y)
-                    queue[key] = value
-
-            while len(queue) > 0 :
-                key = list(queue.keys())[0]
-                position = (int(key[0]), int(key[2]))
-                nextNode = {"position" : position, "value" : queue.pop(key)}
-                score += checkStreak(nextNode, positionArray, visited, streak + 1)
-            
-            return score
-
-                
-
-        totalScore = 0
-        for x in range(len(positionArray)) : 
-            row = positionArray[x]
-            for y in range(len(row)) : 
-                value = positionArray[x][y]
-                totalScore += checkStreak(currentNode = {"position" : (x,y), "value" : value},  positionArray = positionArray )
-                
-        return totalScore
-
-    # Uses Minimax  
-    def getNextIterationScore(self, piece, nextColor, index, positionArray, row, col, alpha, beta, isMaximizing, depth) : 
-        j = index
-        positionArray[j].append(piece)
-        hashValue = self.hashPositionMap(positionArray)
-        
-        if( hashValue in self.database.keys()) :
-            score = self.database[hashValue]["score"]
-        else : 
-            score = self.Minimax(nextColor, positionArray, row, col, alpha, beta, not isMaximizing, depth-1)
-        positionArray[j].pop()
+                        if  colorStreak and ( value == pieceColor or value == pieceColor + 2 ) : 
+                            if(pieceColor == playerColor ) :
+                                score = score + 2000  if scoreIncrement == 4 else score + scoreIncrement
+                            else :
+                                score = score - 5000  if scoreIncrement == 4 else score - 10*scoreIncrement
+                        else :
+                            colorStreak = False
         return score
 
-    def Minimax(self, color, positionArray, row = 6, col = 7, alpha = float("-inf"), beta = float("inf"), isMaximizing = True, depth = 3):
+    def getTotalPiecesInBoard(self, positionArray) :
+        total = 0
+        for i in range(len(positionArray)) : 
+            row = positionArray[i]
+            for j in range(len(row)) :
+                total += 1
+        return total
+
+    def generateSucessors(self, positionArray ) :
+        successors = []
+        for j in range(self.col*2) :
+            piece = Piece(ShapeConstant.CROSS if j % 2 == 1 else ShapeConstant.CIRCLE , self.color)
+            index = j/2 if j % 2 == 0 else (j-1)/2
+            index = int(index)
+            if(len(positionArray[index]) >= self.row or self.pieceQuota[piece.shape] <= 0 ) :
+                continue
+            piece = self.getNumberRepresentation(piece)
+            positionArray[index].append(piece)
+            hashValue = self.hashPositionMap(positionArray)
+            successors.append({
+                "position" : copy.deepcopy(positionArray), 
+                "hashValue" : hashValue,
+                "column" : index,
+                "piece" : piece
+            })
+            positionArray[index].pop()
+        
+        return successors
+
+
+    def Minimax(self, color, positionArray, alpha = float("-inf"), beta = float("inf"), isMaximizing = True, depth = 3):
         # Using Fail-Soft Alpha Beta
-        if(depth == 0) :
+        if(depth <= 0) or time() - self.start_time >= self.thinking_time:
             score = self.getPositionScore(positionArray)
             hashValue = self.hashPositionMap(positionArray)
 
@@ -223,37 +234,33 @@ class Minimax:
             return score
         elif (isMaximizing) :
             maxScore = float("-inf")
-            for j in range(col*2) : 
+            for successor in self.generateSucessors(positionArray) :
+                position = successor["position"]
+                hashValue = successor["hashValue"]
+                
                 nextColor = ColorConstant.RED if color == ColorConstant.BLUE else ColorConstant.BLUE
-                piece = self.getNumberRepresentation(Piece(ShapeConstant.CROSS if j % 2 == 1 else ShapeConstant.CIRCLE , color))
-                index = j/2 if j % 2 == 0 else (j-1)/2
-                index = int(index)
-                if(len(positionArray[index]) >= row) :
-                    continue
-                score = self.getNextIterationScore(piece, nextColor, index, positionArray, row, col, alpha, beta, isMaximizing, depth)
-
+                if( hashValue in self.database.keys()) :
+                    score = self.database[hashValue]["score"]
+                else : 
+                    score = self.Minimax(nextColor, position, alpha, beta, not isMaximizing, depth-1)
                 # Compares the scores 
                 maxScore = max(score, maxScore)
                 if( score > maxScore ) :
                     maxScore = score
-                if( maxScore > self.bestMoveScore  ) :
-                    self.bestMoveScore = maxScore 
-                    self.bestMove = (int(index), self.getPieceRepresentation(piece)[0])
                 alpha = max(alpha, maxScore)
                 if(maxScore >= beta) :
                     break 
             return maxScore
         else :
             minScore = float("inf")
-            for j in range(col*2) : 
-                nextColor = ColorConstant.RED if color == ColorConstant.BLUE else ColorConstant.BLUE
-                piece = self.getNumberRepresentation(Piece(ShapeConstant.CROSS if j % 2 == 1 else ShapeConstant.CIRCLE , color))
-                index = j/2 if j % 2 == 0 else (j-1)/2
-                index = int(index)
-                if(len(positionArray[index]) >= row) :
-                    continue
-                score = self.getNextIterationScore(piece, nextColor, index, positionArray, row, col, alpha, beta, isMaximizing, depth)
-
+            for successor in self.generateSucessors(positionArray) :
+                position = successor["position"]
+                hashValue = successor["hashValue"] 
+                nextColor = ColorConstant.RED if color== ColorConstant.BLUE else ColorConstant.BLUE
+                if( hashValue in self.database.keys()) :
+                    score = self.database[hashValue]["score"]
+                else : 
+                    score = self.Minimax(nextColor, position, alpha, beta, not isMaximizing, depth-1)
                 # Compares the scores 
                 minScore = min(score, minScore)
                 beta = min(beta, minScore)
