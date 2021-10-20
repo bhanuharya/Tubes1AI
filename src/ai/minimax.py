@@ -11,7 +11,7 @@ class Minimax:
     def __init__(self, isLearning = False):
         self.isLearning = isLearning # Used to train the bot and populate the Database JSON. Set to False if the bot is currently playing. 
         self.database = {} # The current database object to lookup positions 
-        self.depth = 3
+        self.depth = 5
 
         # For Debugging
         self.checkVariations = 0
@@ -94,7 +94,7 @@ class Minimax:
     
     def find(self, state, player_turn, thinking_time):
         if(state.round <= 2) :
-            return (random.randint(0,state.board.col), random.choice([ShapeConstant.CIRCLE, ShapeConstant.CROSS]))
+            return (random.randint(0,state.board.col-1), random.choice([ShapeConstant.CIRCLE, ShapeConstant.CROSS]))
         # Preparation
         self.start_time = time()
         self.thinking_time = thinking_time
@@ -123,23 +123,27 @@ class Minimax:
             self.database = {}
             if time() - self.start_time > self.thinking_time: 
                 break
+            start_time = time()
+            
             successors = self.generateSucessors(positionArray)
-            # print(successors, len(successors), depth)
+            
             for successor in successors:
+                test = time()
+                position = successor["position"]
                 score = self.Minimax(self.color, successor["position"], depth=depth)
-                # print(successor, score, depth)
                 if score > self.bestMoveScore:
                     
                     column = successor["column"]
                     piece = successor["piece"]
                     self.bestMoveScore = score
                     self.bestMove = (int(column), self.getPieceRepresentation(piece)[0])
-            # print(self.bestMove, depth)
+            # print("depth :", depth, "Time : ", time() - start_time)
         return self.bestMove
 
     # Scoring System based on the number of streaks
     def getPositionScore(self, positionArray) : 
         score = 0
+        visited = {}
         for i in range(len(positionArray)) : 
             row = positionArray[i]
             for j in range(len(row)) : 
@@ -163,29 +167,47 @@ class Minimax:
                         value = positionArray[x][y]  
                     except IndexError :
                         continue
-
+                    flag = False
+                    for key in visited : 
+                        positionString = key
+                        prevMove = visited[key]
+                        posX = positionString[0]
+                        posY = positionString[2]
+                        if(posX == x 
+                            and posY == Y 
+                            and prevMove[0] == -move[0]
+                            and prevMove[1] == -move[1]
+                        ) : 
+                            flag = True
+                            break
+                    if(flag) : 
+                        continue
                     
                     colorStreak = True
                     shapeStreak = True
-                    for streak in range(5) : 
+                    
+                    for streak in range(2,5) : 
                         scoreIncrement = streak
+                        if(streak == 3) :
+                            positionString = str(x) + "," + str(y)
+                            visited[positionString] = (-move[0], -move[1])
                         
-                        player_turn = self.depth % 2
                         if shapeStreak and ( value == pieceShape or value == pieceShape + 1 ):
                             if( pieceShape == playerShape ) :
-                                score = score + 2000 if scoreIncrement == 4 else score + scoreIncrement
+                                score = score + 10 if scoreIncrement == 4 else score + scoreIncrement + 10
                             else :
-                                score = score - 5000  if scoreIncrement == 4 else score - 10*scoreIncrement
+                                score = score - 15  if scoreIncrement == 4 else score - scoreIncrement - 20
                         else :
                             shapeStreak = False 
 
                         if  colorStreak and ( value == pieceColor or value == pieceColor + 2 ) : 
                             if(pieceColor == playerColor ) :
-                                score = score + 2000  if scoreIncrement == 4 else score + 10*scoreIncrement
+                                score = score + 10 if scoreIncrement == 4 else score + scoreIncrement
                             else :
-                                score = score - 5000  if scoreIncrement == 4 else score - 10*scoreIncrement
+                                score = score - 15 if scoreIncrement == 4 else score - scoreIncrement
                         else :
                             colorStreak = False
+            
         return score
 
     def getTotalPiecesInBoard(self, positionArray) :
@@ -214,13 +236,13 @@ class Minimax:
                 "piece" : piece
             })
             positionArray[index].pop()
-        
+
         return successors
 
 
     def Minimax(self, color, positionArray, alpha = float("-inf"), beta = float("inf"), isMaximizing = True, depth = 3):
         # Using Fail-Soft Alpha Beta
-        if(depth <= 0) or time() - self.start_time >= self.thinking_time:
+        if(depth <= 0) or time() - self.start_time + 0.1>= self.thinking_time:
             score = self.getPositionScore(positionArray)
             hashValue = self.hashPositionMap(positionArray)
 
