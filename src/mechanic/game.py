@@ -46,7 +46,8 @@ class Game:
             if not self.config.is_dump:
                 # You can change model used here
                 model1 = Minimax()
-                model2 = LocalSearch()
+
+                model2 = Minimax()
                 
             else:
                 # Don't change this

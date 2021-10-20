@@ -93,7 +93,7 @@ class Minimax:
         return positionArray
     
     def find(self, state, player_turn, thinking_time):
-        if(state.round <= 4) :
+        if(state.round <= 2) :
             return (random.randint(0,state.board.col), random.choice([ShapeConstant.CIRCLE, ShapeConstant.CROSS]))
         # Preparation
         self.start_time = time()
@@ -181,7 +181,7 @@ class Minimax:
 
                         if  colorStreak and ( value == pieceColor or value == pieceColor + 2 ) : 
                             if(pieceColor == playerColor ) :
-                                score = score + 2000  if scoreIncrement == 4 else score + scoreIncrement
+                                score = score + 2000  if scoreIncrement == 4 else score + 10*scoreIncrement
                             else :
                                 score = score - 5000  if scoreIncrement == 4 else score - 10*scoreIncrement
                         else :
