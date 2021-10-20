@@ -47,7 +47,7 @@ class Game:
                 # You can change model used here
                 model1 = Minimax()
 
-                model2 = Minimax()
+                model2 = LocalSearch()
                 
             else:
                 # Don't change this
