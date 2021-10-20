@@ -147,7 +147,7 @@ WS
                 else:
                     rows -= 1
             res.append(LocalSearchGroup34.local_max(board, n_player,rows, cols))
-        print(res)
+        # print(res)
         
         for i in range(len(res)):
             if res[i] == None:

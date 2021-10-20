@@ -93,7 +93,7 @@ class MinimaxGroup34:
         return positionArray
     
     def find(self, state, player_turn, thinking_time):
-        if(state.round <= 2) :
+        if(state.round <= 4) :
             return (random.randint(0,state.board.col-1), random.choice([ShapeConstant.CIRCLE, ShapeConstant.CROSS]))
         # Preparation
         self.start_time = time()
@@ -194,17 +194,17 @@ class MinimaxGroup34:
                         
                         if shapeStreak and ( value == pieceShape or value == pieceShape + 1 ):
                             if( pieceShape == playerShape ) :
-                                score = score + 10 if scoreIncrement == 4 else score + scoreIncrement + 10
+                                score = score + 70 if scoreIncrement == 4 else score + scoreIncrement + 5
                             else :
-                                score = score - 15  if scoreIncrement == 4 else score - scoreIncrement - 20
+                                score = score - 20  if scoreIncrement == 4 else score - scoreIncrement - 5
                         else :
                             shapeStreak = False 
 
                         if  colorStreak and ( value == pieceColor or value == pieceColor + 2 ) : 
                             if(pieceColor == playerColor ) :
-                                score = score + 10 if scoreIncrement == 4 else score + scoreIncrement
+                                score = score + 50 if scoreIncrement == 4 else score + 2*scoreIncrement
                             else :
-                                score = score - 15 if scoreIncrement == 4 else score - scoreIncrement
+                                score = score - 80 if scoreIncrement == 4 else score - 2*scoreIncrement
                         else :
                             colorStreak = False
             
@@ -242,7 +242,7 @@ class MinimaxGroup34:
 
     def Minimax(self, color, positionArray, alpha = float("-inf"), beta = float("inf"), isMaximizing = True, depth = 3):
         # Using Fail-Soft Alpha Beta
-        if(depth <= 0) or time() - self.start_time + 0.1>= self.thinking_time:
+        if(depth <= 0) or time() - self.start_time + 0.15>= self.thinking_time:
             score = self.getPositionScore(positionArray)
             hashValue = self.hashPositionMap(positionArray)
 
