@@ -167,9 +167,10 @@ WS
 
         i = 0
         find = False
+        x = 0
         while(i < len(res) and find == False):
             if res[i] == None:
-                print("")
+                x += 0
             else:
                 if (temp[0] == res[i][0] ):
                     find = True
