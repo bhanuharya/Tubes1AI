@@ -45,7 +45,6 @@ class Game:
             if not self.config.is_dump:
                 # You can change model used here
                 model1 = MinimaxGroup34()
-
                 model2 = LocalSearchGroup34()
                 
             else:
@@ -58,6 +57,7 @@ class Game:
         elif self.config.game_type == GameConstant.PVB:
             if not self.config.is_dump:
                 # You can change model used here
+                # model = MinimaxGroup34()
                 model = LocalSearchGroup34()
             else:
                 # Don't change this
