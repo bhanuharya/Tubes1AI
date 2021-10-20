@@ -127,14 +127,14 @@ class Minimax:
             # print(successors, len(successors), depth)
             for successor in successors:
                 score = self.Minimax(self.color, successor["position"], depth=depth)
-                print(successor, score, depth)
+                # print(successor, score, depth)
                 if score > self.bestMoveScore:
                     
                     column = successor["column"]
                     piece = successor["piece"]
                     self.bestMoveScore = score
                     self.bestMove = (int(column), self.getPieceRepresentation(piece)[0])
-            print(self.bestMove, depth)
+            # print(self.bestMove, depth)
         return self.bestMove
 
     # Scoring System based on the number of streaks

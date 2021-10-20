@@ -147,7 +147,7 @@ WS
                 else:
                     rows -= 1
             res.append(LocalSearch.local_max(board, n_player,rows, cols))
-        # print(res)
+        print(res)
         
         for i in range(len(res)):
             if res[i] == None:
@@ -157,8 +157,11 @@ WS
         for i in range(len(res)):
             if resValue[i] == None:
                 continue
-            if resValue[i] > temp[0]:
+            if resValue[i] >= temp[0]:
                 temp[0] = resValue[i]
+        
+        
+            
                 
             # elif resValue[i] == temp[0]:
             #     if res[i][1] == GameConstant.PLAYER1_COLOR :
