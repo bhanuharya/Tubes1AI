@@ -1,4 +1,5 @@
-from os import PRIO_PGRP
+# from os import PRIO_PGRP
+import os
 from pickle import NONE
 import random
 from time import time
@@ -114,11 +115,11 @@ WS
         
             
         if arr_priorMax[0][0] >= arr_priorMax[1][0]:
-            print(arr_priorMax[0])
+            # print(arr_priorMax[0])
             return(arr_priorMax[0])
         elif arr_priorMax[0][0] < arr_priorMax[1][0]:
             prioL  = ( arr_priorMax[1][0],random.choice([ShapeConstant.CROSS, ShapeConstant.CIRCLE]),arr_priorMax[1][2] )
-            print(prioL)
+            # print(prioL)
             return(prioL)
 
 
@@ -132,7 +133,7 @@ WS
             found = False
             while (rows >= 0 and found == False):
                 piece = board[rows, cols]
-                print(piece.shape)
+                # print(piece.shape)
                 if (piece.shape == ShapeConstant.BLANK):
                     found = True
                 # elif(piece.shape == ShapeConstant.CROSS or piece.shape == ShapeConstant.CIRCLE):
@@ -165,8 +166,8 @@ WS
         #     idx  = random.randint(0, 6)
 
         #col dan shape
-        print("")
-        print(res[idx])
+        # print("")
+        # print(res[idx])
         return res[idx]
 
 """

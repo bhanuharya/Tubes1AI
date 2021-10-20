@@ -11,16 +11,7 @@ class Minimax:
     def __init__(self, isLearning = False):
         self.isLearning = isLearning # Used to train the bot and populate the Database JSON. Set to False if the bot is currently playing. 
         self.database = {} # The current database object to lookup positions 
-        # if( not os.path.exists('./database.json')) : 
-        #     self.saveToDatabase()
-        # else :
-        #     self.loadDatabase()
-
-        # Load Reference Table
-        if( not os.path.exists('./reference_map.json')) : 
-            self.getReferenceMap(row, col, 4)
-        self.loadReferenceMap()
-        # self.depth = 4
+        self.depth = 3
 
         # For Debugging
         self.checkVariations = 0
@@ -61,7 +52,6 @@ class Minimax:
                 try : 
                     value = self.referenceMap[i][j][pieceValue-1]
                 except IndexError : 
-                    # print(positionArray)
                     pass
                 finalValue = finalValue ^ value
         return finalValue
@@ -102,118 +92,95 @@ class Minimax:
                     positionArray[j].append(piece)
         return positionArray
     
-    
-    def learn(self, board, shape, color, depth) : 
-        # Problem : Because the transition table already have the value for position x, the learn function doesn't go deep enough. 
-        self.find(board, shape, color, depth)
-        # self.find(board, ColorConstant.RED, 3)
-        # self.find(board, ColorConstant.RED, 4)
-        # minimax.find(board, ColorConstant.RED, 4)
-        # minimax.find(board, ColorConstant.RED, 5)
-        # minimax.find(board, ColorConstant.RED, 6)
-        # 
-        if(depth == 3) : 
-            # print(self.database)
-            self.saveToDatabase()
-        return 0
-
     def find(self, state, player_turn, thinking_time):
-
+        if(state.round <= 2) :
+            return (random.randint(0,state.board.col), random.choice([ShapeConstant.CIRCLE, ShapeConstant.CROSS]))
         # Preparation
         currentTime = time()
-        depth = 4
         # Player piece shape and color
         self.shape = state.players[player_turn].shape
         self.color = state.players[player_turn].color  
-        col = state.board.col 
+        # The col and row needs to be reversed. 
+        col = state.board.col
         row = state.board.row
-        positionArray = self.getPositionArrayFromBoard(state.board) 
-        # positionArray = [[2, 2, 2, 2, 4], [3], [], [1], [], [1], []]
-        # positionArray = [[2, 2, 2, 2, 4, 2, 1], [3], [], [1], [4], [1], []]
-        positionArray = [[2, 2], [3], [], [1, 2], [4], [], []]
-        # positionArray = [[2, 2, 4, 3], [3], [], [1, 2], [4], [2], []]
-        # positionArray = [[2, 2, 4, 3], [3], [2, 3], [1, 2], [4], [2], [2]]
-        positionArray = [[2, 2, 3], [3, 4], [], [1, 2], [4], [4], []]
+        positionArray = self.getPositionArrayFromBoard(state.board)
         
+        if( not os.path.exists('./reference_map.json')) : 
+            self.getReferenceMap(row, col, 4)
+        self.loadReferenceMap()
 
         # Initiates the reuslts 
         self.totalPositions = 0
         self.bestMove = (0,0) # Just a placeholder value ( Column, Shape and Color )
         self.bestMoveScore = float("-inf")
 
-        # Calculation
-        # self.findAllPossiblePositions(color, positionArray, row, col, depth)
         # Minimax
-        self.Minimax(self.color, positionArray, row, col, depth = depth)
-        self.totalPositions = 14**depth # Basic math; What it should be. Already confirmed
-
-        # Result
-        print("Depth :", depth)
-        print("Number of possible positions :",self.totalPositions)
-        print("Best Move : ", self.bestMove)
-        print("Score :",self.bestMoveScore)
-        print("Time : ",time()- currentTime, "Seconds")
-        print("Total positions in transition table :", len(self.database))
-        # print("Variations : ", self.checkVariations)
-
-
+        # print(positionArray)
+        self.Minimax(self.color, positionArray, row, col, depth = self.depth)
+        # self.totalPositions = 14**depth # Basic math; What it should be. Already confirmed
+        # print("Time : ",time() - currentTime, "Seconds")
         return self.bestMove
 
+    # Scoring System based on the number of streaks
     def getPositionScore(self, positionArray) : 
-        def checkStreak(currentNode, positionArray, visited = [], queue = [], streak = 2 ) :  
+        def checkStreak(currentNode, positionArray, visited = [], streak = 2 ) :  
             streak_way = [(-1, 0), (0, -1), (0, 1), (1, 0), (-1, -1), (-1, 1), (1, -1), (1, 1)]
-            
+            queue = {}
             # Preparation
             currentNodePiece = self.getPieceRepresentation(currentNode["value"])
             pieceShape = 1 if currentNodePiece[0] == ShapeConstant.CIRCLE else 3
             pieceColor = 1 if currentNodePiece[1] == ColorConstant.RED else 2 
             shapeNumber = 1 if self.shape == ShapeConstant.CIRCLE else 3
             colorNumber = 1 if self.color == ColorConstant.RED else 2 
-            streakFlag = False
+            
             score = 0
             visited.append(currentNode)
-            # print(positionArray, currentNode["position"])
             for move in streak_way :
                 scoreIncrement = streak
+                streakFlag = False
                 if scoreIncrement == 4 :
                     scoreIncrement = float("inf")
-                # print(currentNode["position"] + move)
                 (x, y) = (currentNode["position"][0] + move[0], currentNode["position"][1] + move[1])
                 if x < 0 or y < 0 :
                     continue
-                if (x,y) in visited:
-                    continue 
+                found = False
+                for position in visited:
+                    if( x == position["position"][0] and y == position["position"][1]) :
+                        found = True 
+                        break 
+                if(found) :
+                    continue
                 try :
                     value = positionArray[x][y]
                     
                 except IndexError :
                     continue
-                # print("nextPosition : ", x,y)
+                player_turn = self.depth % 2
                 if value == pieceShape or value == pieceShape + 1 : 
                     streakFlag = True
                     if( pieceShape == shapeNumber ) :
-                        score = float("inf") if scoreIncrement == float("inf") else score + scoreIncrement
+                        score = score + 200 if scoreIncrement == float("inf") else score + scoreIncrement
                     else :
-                        score = float("-inf") if scoreIncrement == float("inf") else score - scoreIncrement
+                        score = score - 200  if scoreIncrement == float("inf") else score - 10*scoreIncrement
                     
 
                 if value == colorNumber or value == colorNumber + 2 : 
                     streakFlag = True
                     if(pieceColor == colorNumber) :
-                        score = float("inf") if scoreIncrement == float("inf") else score + scoreIncrement
+                        score = score + 200  if scoreIncrement == float("inf") else score + scoreIncrement
                     else :
-                        score = float("-inf") if scoreIncrement == float("inf") else score - scoreIncrement
+                        score = score - 200  if scoreIncrement == float("inf") else score - scoreIncrement
                 
-                # print(value, score)
-                # if(streakFlag) :
-                #     queue.append({"position" : (x,y), "value" : value})
+                if(streakFlag) :
+                    key = str(x) + "," + str(y)
+                    queue[key] = value
 
             while len(queue) > 0 :
-                # print(queue, score)
-                nextNode = queue.pop(0)
-                score += checkStreak(nextNode, positionArray, visited, queue, streak + 1)
+                key = list(queue.keys())[0]
+                position = (int(key[0]), int(key[2]))
+                nextNode = {"position" : position, "value" : queue.pop(key)}
+                score += checkStreak(nextNode, positionArray, visited, streak + 1)
             
-            # print("End Score", score)
             return score
 
                 
@@ -225,7 +192,6 @@ class Minimax:
                 value = positionArray[x][y]
                 totalScore += checkStreak(currentNode = {"position" : (x,y), "value" : value},  positionArray = positionArray )
                 
-        # print(positionArray, totalScore)
         return totalScore
 
     # Uses Minimax  
@@ -237,7 +203,6 @@ class Minimax:
         if( hashValue in self.database.keys()) :
             score = self.database[hashValue]["score"]
         else : 
-            # print(nextColor, positionArray)
             score = self.Minimax(nextColor, positionArray, row, col, alpha, beta, not isMaximizing, depth-1)
         positionArray[j].pop()
         return score
@@ -261,11 +226,11 @@ class Minimax:
             for j in range(col*2) : 
                 nextColor = ColorConstant.RED if color == ColorConstant.BLUE else ColorConstant.BLUE
                 piece = self.getNumberRepresentation(Piece(ShapeConstant.CROSS if j % 2 == 1 else ShapeConstant.CIRCLE , color))
-                # print(piece) # The Piece Value 3 is never added to the database somehow
                 index = j/2 if j % 2 == 0 else (j-1)/2
-                if(index > row) :
+                index = int(index)
+                if(len(positionArray[index]) >= row) :
                     continue
-                score = self.getNextIterationScore(piece, nextColor, int(index), positionArray, row, col, alpha, beta, isMaximizing, depth)
+                score = self.getNextIterationScore(piece, nextColor, index, positionArray, row, col, alpha, beta, isMaximizing, depth)
 
                 # Compares the scores 
                 maxScore = max(score, maxScore)
@@ -284,9 +249,10 @@ class Minimax:
                 nextColor = ColorConstant.RED if color == ColorConstant.BLUE else ColorConstant.BLUE
                 piece = self.getNumberRepresentation(Piece(ShapeConstant.CROSS if j % 2 == 1 else ShapeConstant.CIRCLE , color))
                 index = j/2 if j % 2 == 0 else (j-1)/2
-                if(index >= row) :
+                index = int(index)
+                if(len(positionArray[index]) >= row) :
                     continue
-                score = self.getNextIterationScore(piece, nextColor, int(index), positionArray, row, col, alpha, beta, isMaximizing, depth)
+                score = self.getNextIterationScore(piece, nextColor, index, positionArray, row, col, alpha, beta, isMaximizing, depth)
 
                 # Compares the scores 
                 minScore = min(score, minScore)
@@ -294,52 +260,3 @@ class Minimax:
                 if(minScore <= alpha) :
                     break 
             return minScore
-
-    
-    # Used for the findAllPossiblePositions method
-    def getPieceScore(self, piece, nextColor, index, positionArray, row, col, depth) : 
-        j = index
-        positionArray[j].append(piece)
-        
-
-        hashValue = self.hashPositionMap(positionArray)
-        if( hashValue in self.database.keys()) :
-            score = self.database[hashValue]["score"]
-        else : 
-            score = self.findAllPossiblePositions(nextColor, positionArray, row, col, depth-1)
-        positionArray[j].pop()
-        return score
-
-
-    def findAllPossiblePositions(self, color, positionArray, row, col,  depth = 3 ) :
-        # print(positionArray)
-        if depth == 0 : 
-            # self.totalPositions +=1 
-            score = self.getPositionScore(positionArray)
-            hashValue = self.hashPositionMap(positionArray)
-            # if len(positionArray[0]) > 0 and positionArray[0][0] == 1 :
-            #     self.checkVariations += 1
-
-            # Apparently the reference for the positions is linked with each other so i need to deep copy it 
-            # Putting the actual position into the database is only for human comprehension purposes
-            newPositionArray = copy.deepcopy(positionArray) if self.isLearning else positionArray
-
-            # Save the evaluated position into the database 
-            self.database[hashValue] = {"score" : score, "positionArray" : newPositionArray, "totalPositions" : self.totalPositions}
-
-            return score
-        
-        bestScore = float('-inf')
-        for j in range(col*2) : 
-            nextColor = ColorConstant.RED if color == ColorConstant.BLUE else ColorConstant.BLUE
-            piece = self.getNumberRepresentation(Piece(ShapeConstant.CROSS if j % 2 == 1 else ShapeConstant.CIRCLE , color))
-            index = int(j/2 if j % 2 == 0 else (j-1)/2)
-            if(len(positionArray[index]) == row) : 
-                continue
-            score = self.getPieceScore(piece, nextColor, index, positionArray, row, col, depth)
-            if score > bestScore :
-                bestScore = score
-                # self.bestMove = 
-
-        return bestScore
-

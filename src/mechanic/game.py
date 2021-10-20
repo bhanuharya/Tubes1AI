@@ -45,7 +45,7 @@ class Game:
         if self.config.game_type == GameConstant.BVB:
             if not self.config.is_dump:
                 # You can change model used here
-                model1 = LocalSearch()
+                model1 = Minimax()
                 model2 = Minimax()
             else:
                 # Don't change this
