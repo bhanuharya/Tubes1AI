@@ -99,6 +99,8 @@ WS
                     row_ += row_ax
                     col_  += col_ax
                     mark += 1
+
+                
                 sevenWay.append(mark)
                 
 
@@ -109,18 +111,22 @@ WS
             fourWay.append(sevenWay[4] + sevenWay[5]) #Diagonal -
             maks = max(fourWay)
             priorMax = (maks, piece, col, row)
-            arr_priorMax.append(priorMax)
+            # if priorMax[3] >= 0:
+            if row >= 0:
+                arr_priorMax.append(priorMax)
         # print(sevenWay)
         # print(arr_priorMax)
         
-            
-        if arr_priorMax[0][0] >= arr_priorMax[1][0]:
-            # print(arr_priorMax[0])
-            return(arr_priorMax[0])
-        elif arr_priorMax[0][0] < arr_priorMax[1][0]:
-            prioL  = ( arr_priorMax[1][0],random.choice([ShapeConstant.CROSS, ShapeConstant.CIRCLE]),arr_priorMax[1][2] )
-            # print(prioL)
-            return(prioL)
+        # for i in arr_priorMax:
+        #     if 
+        if arr_priorMax:
+            if arr_priorMax[0][0] >= arr_priorMax[1][0]:
+                # print(arr_priorMax[0])
+                return(arr_priorMax[0])
+            elif arr_priorMax[0][0] < arr_priorMax[1][0]:
+                prioL  = ( arr_priorMax[1][0],random.choice([ShapeConstant.CROSS, ShapeConstant.CIRCLE]),arr_priorMax[1][2] )
+                # print(prioL)
+                return(prioL)
 
 
     def globalMax(board: Board, n_player: int) -> Tuple[int,str,int, ]:
@@ -142,9 +148,15 @@ WS
                     rows -= 1
             res.append(LocalSearch.local_max(board, n_player,rows, cols))
         # print(res)
+        
         for i in range(len(res)):
+            if res[i] == None:
+      
+                continue
             resValue[i]= res[i][0]
         for i in range(len(res)):
+            if resValue[i] == None:
+                continue
             if resValue[i] > temp[0]:
                 temp[0] = resValue[i]
                 
@@ -155,11 +167,15 @@ WS
 
         i = 0
         find = False
+        x = 0
         while(i < len(res) and find == False):
-            if(temp[0] == res[i][0]):
-                find = True
+            if res[i] == None:
+                x += 0
+            else:
+                if (temp[0] == res[i][0] ):
+                    find = True
             i += 1
-        
+            
         idx = i-1      
 
         # if res[idx][0] == 0:
