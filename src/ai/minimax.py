@@ -7,7 +7,7 @@ from src.model import State, Board, Piece
 from typing import Tuple, List
 
 
-class Minimax:
+class MinimaxGroup34:
     def __init__(self, isLearning = False):
         self.isLearning = isLearning # Used to train the bot and populate the Database JSON. Set to False if the bot is currently playing. 
         self.database = {} # The current database object to lookup positions 
