@@ -115,17 +115,17 @@ WS
             if row >= 0:
                 arr_priorMax.append(priorMax)
         # print(sevenWay)
-        print(arr_priorMax)
+        # print(arr_priorMax)
         
         # for i in arr_priorMax:
         #     if 
         if arr_priorMax:
             if arr_priorMax[0][0] >= arr_priorMax[1][0]:
-                print(arr_priorMax[0])
+                # print(arr_priorMax[0])
                 return(arr_priorMax[0])
             elif arr_priorMax[0][0] < arr_priorMax[1][0]:
                 prioL  = ( arr_priorMax[1][0],random.choice([ShapeConstant.CROSS, ShapeConstant.CIRCLE]),arr_priorMax[1][2] )
-                print(prioL)
+                # print(prioL)
                 return(prioL)
 
 
@@ -147,7 +147,7 @@ WS
                 else:
                     rows -= 1
             res.append(LocalSearch.local_max(board, n_player,rows, cols))
-        print(res)
+        # print(res)
         
         for i in range(len(res)):
             if res[i] == None:
@@ -169,7 +169,7 @@ WS
         find = False
         while(i < len(res) and find == False):
             if res[i] == None:
-                print("mampus")
+                print("")
             else:
                 if (temp[0] == res[i][0] ):
                     find = True
