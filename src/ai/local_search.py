@@ -14,7 +14,7 @@ from src.utility import *
 from src.model import Piece, Board, State
 
 
-class LocalSearch:
+class LocalSearchGroup34:
     def __init__(self):
         pass
 
@@ -22,7 +22,7 @@ class LocalSearch:
         self.thinking_time = time() + thinking_time
         self.board = state.board
         global_max = []
-        global_max.append(LocalSearch.globalMax(self.board, n_player))
+        global_max.append(LocalSearchGroup34.globalMax(self.board, n_player))
 
         # print(global_max)
         # print(global_max[0][0])
@@ -146,8 +146,8 @@ WS
                 #     print(piece.shape)
                 else:
                     rows -= 1
-            res.append(LocalSearch.local_max(board, n_player,rows, cols))
-        # print(res)
+            res.append(LocalSearchGroup34.local_max(board, n_player,rows, cols))
+        print(res)
         
         for i in range(len(res)):
             if res[i] == None:
@@ -157,8 +157,11 @@ WS
         for i in range(len(res)):
             if resValue[i] == None:
                 continue
-            if resValue[i] > temp[0]:
+            if resValue[i] >= temp[0]:
                 temp[0] = resValue[i]
+        
+        
+            
                 
             # elif resValue[i] == temp[0]:
             #     if res[i][1] == GameConstant.PLAYER1_COLOR :
