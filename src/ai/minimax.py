@@ -93,7 +93,7 @@ class Minimax:
         return positionArray
     
     def find(self, state, player_turn, thinking_time):
-        if(state.round <= 4) :
+        if(state.round <= 2) :
             return (random.randint(0,state.board.col), random.choice([ShapeConstant.CIRCLE, ShapeConstant.CROSS]))
         # Preparation
         self.start_time = time()
@@ -127,14 +127,14 @@ class Minimax:
             # print(successors, len(successors), depth)
             for successor in successors:
                 score = self.Minimax(self.color, successor["position"], depth=depth)
-                print(successor, score, depth)
+                # print(successor, score, depth)
                 if score > self.bestMoveScore:
                     
                     column = successor["column"]
                     piece = successor["piece"]
                     self.bestMoveScore = score
                     self.bestMove = (int(column), self.getPieceRepresentation(piece)[0])
-            print(self.bestMove, depth)
+            # print(self.bestMove, depth)
         return self.bestMove
 
     # Scoring System based on the number of streaks
@@ -181,7 +181,7 @@ class Minimax:
 
                         if  colorStreak and ( value == pieceColor or value == pieceColor + 2 ) : 
                             if(pieceColor == playerColor ) :
-                                score = score + 2000  if scoreIncrement == 4 else score + scoreIncrement
+                                score = score + 2000  if scoreIncrement == 4 else score + 10*scoreIncrement
                             else :
                                 score = score - 5000  if scoreIncrement == 4 else score - 10*scoreIncrement
                         else :
